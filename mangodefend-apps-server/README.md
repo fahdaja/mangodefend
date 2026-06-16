@@ -1,98 +1,135 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# MangoDefend - Core Apps Server
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+MangoDefend Apps Server adalah core backend dan API gateway untuk ekosistem antivirus dan pendeteksi malware berbasis Machine Learning (ML) MangoDefend. Dibangun menggunakan framework NestJS (TypeScript), server ini bertindak sebagai jembatan yang menghubungkan aplikasi web admin, agent desktop, engine deteksi ML, serta layanan eksternal (Database, Firebase, Supabase, dan Payment Gateway).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 🚀 Fitur Utama
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Backend ini mengelola modul-modul krusial sistem:
 
-## Project setup
+1. **Autentikasi & Otorisasi Pengguna (`/auth`, `/users`)**
+   - Integrasi Firebase Authentication untuk validasi ID Token secara aman.
+   - Mendukung registrasi dan login melalui metode standar maupun OAuth2.
+   - Role-Based Access Control (RBAC) untuk mengamankan endpoint berdasarkan hak akses (Super Admin, Admin Validator, Finance Admin, Subscriber, Guest).
+2. **Manajemen Transaksi & Pembayaran (`/transactions`)**
+   - Integrasi Webhook Payment Gateway (Midtrans/Xendit) untuk memproses pembayaran langganan secara otomatis.
+   - Scheduler otomatis (`autoExpirePendingTransactions`) untuk membatalkan transaksi pending yang berumur lebih dari 24 jam.
+   - Lifecycle status transaksi yang aman (Pending, Success, Expired, Failed).
+3. **Manajemen Paket & Langganan (`/subscriptions`)**
+   - Skema aktivasi paket langganan (Plans) secara otomatis setelah transaksi sukses.
+   - Penanganan siklus masa aktif langganan (Active, Expired, Replaced, Cancelled).
+4. **API Pemindaian & Deteksi (`/scans`, `/ML`)**
+   - Berinteraksi dengan `mangodefend-ml-server` untuk memicu analisis file biner.
+   - Menyimpan riwayat pemindaian file, status ancaman, dan meta data file.
+   - Pencatatan log deteksi real-time untuk audit.
+5. **Penyimpanan File Aman (Supabase Storage)**
+   - Integrasi dengan Supabase Storage SDK untuk mengunggah file bukti sengketa (*disputes*) dan sampel malware yang dikirim oleh pengguna.
+6. **Layanan Notifikasi Email (Nodemailer)**
+   - Mengirimkan email verifikasi dan bukti kuitansi pembayaran (*receipt email*) otomatis menggunakan protokol SMTP Gmail/kustom.
+7. **Pengelolaan Dataset Ancaman (`/dataset`)**
+   - Endpoint untuk mendaftarkan dan memvalidasi sampel malware baru.
+   - Seeder otomatis (`seed:dataset`) untuk mengisi data awal ancaman ke database.
 
-```bash
-$ pnpm install
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** [NestJS v11](https://nestjs.com/) (Node.js)
+- **Language:** [TypeScript](https://www.typescriptlang.org/)
+- **ORM:** [TypeORM](https://typeorm.io/) (berkomunikasi dengan PostgreSQL)
+- **Database Driver:** `pg` (PostgreSQL)
+- **Authentication:** [Firebase Admin SDK](https://firebase.google.com/docs/admin)
+- **Cloud Storage:** [Supabase JS Client SDK](https://supabase.com/docs/reference/javascript/introduction)
+- **Email Delivery:** [Nodemailer](https://nodemailer.com/)
+- **Package Manager:** `pnpm`
+
+---
+
+## ⚙️ Konfigurasi Environment Variables
+
+Buat file `.env` di root folder `/mangodefend-apps-server` berdasarkan template `.env.example`:
+
+```env
+# SERVER CONFIG
+PORT=4000
+
+# DATABASE CONFIG (PostgreSQL)
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=your_database_password
+DB_NAME=mangodefend_db
+
+# SUPABASE STORAGE CONFIG
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_supabase_api_key
+SUPABASE_BUCKET_NAME=your_storage_bucket_name
+
+# FIREBASE CONFIG
+FIREBASE_PROJECT_ID=your-firebase-project-id
+
+# SMTP EMAIL CONFIG
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_gmail_app_password
+SMTP_FROM=noreply@mangodefend.com
 ```
 
-## Compile and run the project
+---
 
+## 📥 Panduan Instalasi & Penggunaan
+
+### 1. Jalankan Migrasi/Setup Database
+Pastikan layanan PostgreSQL Anda telah aktif dan database yang dideklarasikan di `.env` sudah dibuat.
+
+### 2. Install Dependensi
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+pnpm install
 ```
 
-## Run tests
-
+### 3. Jalankan Seeder Dataset Awal
+Untuk mengisi database Anda dengan contoh data ancaman/malware default:
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+pnpm run seed:dataset
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+### 4. Jalankan Server
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+# Mode Pengembangan (Watch Mode)
+pnpm run start:dev
+
+# Mode Produksi
+pnpm run build
+pnpm run start:prod
 ```
+Server akan berjalan secara default di `http://localhost:4000`.
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Resources
+## 📁 Struktur Folder Utama
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```text
+mangodefend-apps-server/
+├── src/
+│   ├── api/                # Modul Fitur API
+│   │   ├── ML/             # Integrasi dengan Engine Deteksi ML
+│   │   ├── auth/           # Manajemen login & Firebase token
+│   │   ├── dataset/        # Inventori data malware/benign
+│   │   ├── scans/          # Proses scanning & history log scan
+│   │   ├── subscriptions/  # Skema paket & masa aktif langganan
+│   │   ├── transactions/   # Transaksi billing & webhook payment
+│   │   └── users/          # Profil pengguna & manajemen akses
+│   ├── common/             # Modul & Helper Global
+│   │   ├── decorator/      # Custom decorators (@Roles)
+│   │   ├── filters/        # Exception filters global
+│   │   ├── firebase/       # Inisialisasi Firebase Admin
+│   │   ├── hash/           # Helper enkripsi bcrypt
+│   │   ├── logger/         # Custom file logger untuk logging performa
+│   │   ├── mail/           # Layanan kirim kuitansi via Nodemailer
+│   │   └── supabase/       # Klien Supabase Storage SDK
+│   ├── app.module.ts       # Root module aplikasi
+│   ├── main.ts             # Entrypoint bootstrap aplikasi
+│   └── seed-dataset.ts     # Script seeder database
+```
