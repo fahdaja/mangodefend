@@ -33,3 +33,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 *.log
+
+# Desktop App (do not push to monorepo)
+Dekstop_V2/
+
