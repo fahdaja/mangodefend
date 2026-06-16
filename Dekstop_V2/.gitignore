@@ -1,0 +1,37 @@
+﻿# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.spec
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# App specific
+local_queue.db
+*.log
+temp/
+.claude/
+
+# Models (optional - uncomment if models are large)
+# models/*.pth
+# models/*.onnx
+backend/
+*.exe
