@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Shield, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { authApi } from "@/lib/api";
@@ -8,7 +8,7 @@ import { useAuthStore } from "@/lib/store";
 import { getDeviceData } from "@/utils/device";
 import Toast from "@/components/Toast";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/dashboard";
@@ -181,5 +181,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="login-page" />}>
+      <LoginForm />
+    </Suspense>
   );
 }
