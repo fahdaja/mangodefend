@@ -1,6 +1,20 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List, Any
+from fastapi import Form
+
+
+class ScanInput(BaseModel):
+    """Schema input untuk scan file."""
+    app_platform: str = Field(default="Unknown", description="Platform asal request: Desktop atau Mobile")
+
+    @classmethod
+    def as_form(
+        cls,
+        app_platform: str = Form(default="Unknown", description="Platform asal request: Desktop atau Mobile")
+    ):
+        return cls(app_platform=app_platform)
+
 
 
 class ScanResponse(BaseModel):

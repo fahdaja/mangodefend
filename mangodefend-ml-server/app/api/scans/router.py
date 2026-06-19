@@ -12,7 +12,8 @@ from app.api.scans.schema import (
     ScanResponse, 
     ErrorResponse, 
     PaginatedScanLogsResponse, 
-    ScanStatsResponse
+    ScanStatsResponse,
+    ScanInput
 )
 from app.api.scans.service import scan_file
 from app.api.scans.model import ScanLog
@@ -43,7 +44,7 @@ router = APIRouter(prefix="/scans", tags=["Scans"])
 )
 async def scan_uploaded_file(
     file: UploadFile = File(..., description="File yang akan di-scan untuk deteksi malware"),
-    app_platform: str = Form(default="Unknown", description="Platform asal request: Desktop atau Mobile"),
+    input_data: ScanInput = Depends(ScanInput.as_form),
     db: Session = Depends(get_db),
 ):
     """
@@ -57,7 +58,7 @@ async def scan_uploaded_file(
     - Menyiarkan hasil ke subscriber real-time (SSE)
     """
     try:
-        result = await scan_file(file, db, app_platform)
+        result = await scan_file(file, db, input_data.app_platform)
         
         # Publish ke real-time log pubsub
         # Serialisasi timestamp ke format ISO
