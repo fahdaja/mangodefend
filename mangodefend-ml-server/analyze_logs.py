@@ -3,6 +3,8 @@
 import os
 import re
 import statistics
+import argparse
+import requests
 
 # Set colors
 class Colors:
@@ -16,30 +18,43 @@ class Colors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def analyze():
-    # Cari file log di root atau subfolder app/
-    paths_to_try = [
-        "mangodefend_scan.log",
-        "app/mangodefend_scan.log",
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "mangodefend_scan.log"),
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "app", "mangodefend_scan.log")
-    ]
-    
-    log_file_path = None
-    for path in paths_to_try:
-        if os.path.exists(path):
-            log_file_path = path
-            break
-            
-    if not log_file_path:
-        print(f"{Colors.FAIL}[!] File log 'mangodefend_scan.log' tidak ditemukan!{Colors.ENDC}")
-        print("[*] Pastikan Anda telah melakukan pengujian scan file setelah me-restart server.")
-        return
+def analyze(url=None, lines=500):
+    if url:
+        print(f"{Colors.OKGREEN}[*] Mengambil file log dari remote: {Colors.BOLD}{url}{Colors.ENDC}\n")
+        try:
+            response = requests.get(url, params={"lines": lines}, timeout=10)
+            if response.status_code != 200:
+                print(f"{Colors.FAIL}[!] Gagal mengambil log dari remote (HTTP {response.status_code}){Colors.ENDC}")
+                return
+            data = response.json()
+            content = "\n".join(data.get("logs", []))
+        except Exception as e:
+            print(f"{Colors.FAIL}[!] Gagal mengambil log dari remote: {e}{Colors.ENDC}")
+            return
+    else:
+        # Cari file log di root atau subfolder app/
+        paths_to_try = [
+            "mangodefend_scan.log",
+            "app/mangodefend_scan.log",
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "mangodefend_scan.log"),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "app", "mangodefend_scan.log")
+        ]
         
-    print(f"{Colors.OKGREEN}[*] Membaca file log dari: {Colors.BOLD}{log_file_path}{Colors.ENDC}\n")
-    
-    with open(log_file_path, "r", encoding="utf-8") as f:
-        content = f.read()
+        log_file_path = None
+        for path in paths_to_try:
+            if os.path.exists(path):
+                log_file_path = path
+                break
+                
+        if not log_file_path:
+            print(f"{Colors.FAIL}[!] File log 'mangodefend_scan.log' tidak ditemukan!{Colors.ENDC}")
+            print("[*] Pastikan Anda telah melakukan pengujian scan file setelah me-restart server.")
+            return
+            
+        print(f"{Colors.OKGREEN}[*] Membaca file log dari: {Colors.BOLD}{log_file_path}{Colors.ENDC}\n")
+        
+        with open(log_file_path, "r", encoding="utf-8") as f:
+            content = f.read()
         
     # Pola regex untuk mengekstrak data
     read_pattern = re.compile(r"Baca File \(Read\)\s*:\s*([\d\.]+)\s*ms")
@@ -98,4 +113,9 @@ def analyze():
     print("=" * 65)
     
 if __name__ == "__main__":
-    analyze()
+    parser = argparse.ArgumentParser(description="Analyze MangoDefend processing time logs.")
+    parser.add_argument("--url", help="HTTP URL to remote internal-logs endpoint (e.g. https://ml-mangodefend.stas-rg.com/api/v1/scans/internal-logs)")
+    parser.add_argument("--lines", type=int, default=500, help="Number of log lines to retrieve from remote (default: 500)")
+    args = parser.parse_args()
+    analyze(url=args.url, lines=args.lines)
+

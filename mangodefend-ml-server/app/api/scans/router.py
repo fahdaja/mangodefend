@@ -275,3 +275,31 @@ async def get_system_logs(lines: int = 100):
     except Exception as e:
         return {"logs": [f"Error reading log file: {str(e)}"]}
 
+
+@router.get(
+    "/internal-logs",
+    summary="Dapatkan log waktu proses internal",
+    description="Membaca dan mengembalikan baris-baris terakhir dari file log mangodefend_scan.log untuk dianalisis secara lokal.",
+)
+async def get_internal_logs(lines: int = 500):
+    import os
+    from collections import deque
+    
+    # Path file log di mangodefend_scan.log
+    log_file_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "mangodefend_scan.log"
+    )
+    
+    try:
+        if not os.path.exists(log_file_path):
+            return {"logs": [f"Log file not found at {log_file_path}"]}
+            
+        with open(log_file_path, "r", encoding="utf-8") as f:
+            last_lines = list(deque(f, maxlen=lines))
+            clean_lines = [line.rstrip("\r\n") for line in last_lines]
+            return {"logs": clean_lines}
+    except Exception as e:
+        return {"logs": [f"Error reading log file: {str(e)}"]}
+
+
