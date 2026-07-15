@@ -1,4 +1,5 @@
 # 🛡️ MangoDefend - Malware Detection Ecosystem
+
 > **Sistem Antivirus & Deteksi Malware Terintegrasi Berbasis Machine Learning (ML), NestJS Core Backend, dan Next.js Admin Dashboard**
 
 Selamat datang di repositori utama **MangoDefend**. Repositori ini mengintegrasikan seluruh komponen sistem pendeteksian malware berbasis visualisasi grayscale file biner dan klasifikasi menggunakan model jaringan saraf tiruan (neural network) berformat ONNX.
@@ -16,11 +17,11 @@ mangodefend/
 └── 🖥️ admin/                    # Antarmuka Dashboard Admin Terpadu (Next.js + TSX + Tailwind)
 ```
 
-| Folder | Deskripsi | Tech Stack |
-| :--- | :--- | :--- |
-| **`mangodefend-ml-server`** | Platform **SaaS ML** bagi **Mitra** untuk mengakses API deteksi malware, konversi grayscale, inferensi model ML, dan SSE log streaming. | FastAPI, ONNX, OpenCV, MySQL, Locust |
-| **`mangodefend-apps-server`** | Backend mandiri khusus untuk mengelola akun **User**, transaksi pembayaran (Midtrans), dan paket langganan antivirus. | NestJS, TypeORM, PostgreSQL, Firebase |
-| **`admin`** | Dashboard interaktif terpadu untuk memantau performa kedua server secara bersamaan (manajemen user/transaksi dari Apps Server & metrik/logs dari ML Server). | Next.js, React, Tailwind CSS, Zustand |
+| Folder                        | Deskripsi                                                                                                                                                    | Tech Stack                            |
+| :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------ |
+| **`mangodefend-ml-server`**   | Platform **SaaS ML** bagi **Mitra** untuk mengakses API deteksi malware, konversi grayscale, inferensi model ML, dan SSE log streaming.                      | FastAPI, ONNX, OpenCV, MySQL, Locust  |
+| **`mangodefend-apps-server`** | Backend mandiri khusus untuk mengelola akun **User**, transaksi pembayaran (Midtrans), dan paket langganan antivirus.                                        | NestJS, TypeORM, PostgreSQL, Firebase |
+| **`admin`**                   | Dashboard interaktif terpadu untuk memantau performa kedua server secara bersamaan (manajemen user/transaksi dari Apps Server & metrik/logs dari ML Server). | Next.js, React, Tailwind CSS, Zustand |
 
 ---
 
@@ -32,7 +33,7 @@ Berikut adalah visualisasi hubungan sistem di mana kedua backend server berdiri 
 graph TD
     subgraph Aktor [Klien & Pengguna]
         Mitra[Mitra Bisnis / API Clients]
-        User[Pengguna Langganan / Klien Web]
+        User[Pengguna Langganan / Klien Desktop & Mobile]
     end
 
     subgraph Portal_Dashboard [Dashboard Admin Terpadu]
@@ -67,6 +68,7 @@ graph TD
 Untuk menjalankan seluruh ekosistem MangoDefend secara lokal, buka 3 tab terminal terpisah:
 
 ### 🚀 Jendela 1: Python ML Server (SaaS Engine)
+
 ```bash
 cd mangodefend-ml-server
 source .venv/bin/activate
@@ -75,6 +77,7 @@ uvicorn main:app --reload --port 8000
 ```
 
 ### 🚀 Jendela 2: Core Apps Server (Langganan & Transaksi)
+
 ```bash
 cd mangodefend-apps-server
 npm install
@@ -82,6 +85,7 @@ npm run start:dev
 ```
 
 ### 🚀 Jendela 3: Admin Dashboard (Monitoring Terpadu)
+
 ```bash
 cd admin
 pnpm install
