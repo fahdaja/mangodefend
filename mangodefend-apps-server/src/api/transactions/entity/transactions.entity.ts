@@ -18,6 +18,12 @@ export class Transactions {
     @Column({ nullable: true })
     external_id?: string
 
+    @Column({ nullable: true })
+    redirect_url?: string
+
+    @Column({ type: 'simple-json', nullable: true })
+    payment_details?: any
+
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     amount!: number
 

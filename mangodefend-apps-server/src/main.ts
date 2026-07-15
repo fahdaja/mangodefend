@@ -5,7 +5,7 @@ import { ResponseInterceptor } from './common/interceptor/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { FileLogger } from './common/logger/file-logger';
 
-const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000')
+const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3001')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
@@ -22,7 +22,7 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-  })
+  });
   await app.listen(process.env.PORT ?? 4000);
 }
 bootstrap();

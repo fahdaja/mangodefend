@@ -9,6 +9,8 @@ import { Plans } from "../../subscriptions/entity/subscription.entity";
 import { User } from "../../users/entity/user.entity";
 import { SubscriptionService } from "../../subscriptions/service/subscription.service";
 import { MailService } from "../../../common/mail/mail.service";
+import { ConfigService } from "@nestjs/config";
+import axios from "axios";
 
 @Injectable()
 export class TransactionService {
@@ -20,7 +22,8 @@ export class TransactionService {
         @InjectRepository(User)
         private userRepository: Repository<User>,
         private subscriptionService: SubscriptionService,
-        private mailService: MailService
+        private mailService: MailService,
+        private configService: ConfigService
     ) {}
 
     async createTransaction(data: CreateTransactionDto): Promise<any> {
@@ -39,7 +42,93 @@ export class TransactionService {
             status: TransactionStatus.PENDING
         });
 
-        const savedTransaction = await this.transactionRepository.save(transaction);
+        let savedTransaction = await this.transactionRepository.save(transaction);
+        
+        // Integrasi Midtrans Core/Snap API
+        const serverKey = this.configService.get<string>('MIDTRANS_SERVER_KEY');
+        if (serverKey) {
+            const isProduction = this.configService.get<string>('MIDTRANS_IS_PRODUCTION') === 'true';
+            const apiBaseUrl = isProduction
+                ? 'https://api.midtrans.com'
+                : 'https://api.sandbox.midtrans.com';
+
+            const authHeader = 'Basic ' + Buffer.from(serverKey + ':').toString('base64');
+            const orderId = `MANGODEFEND-TX-${savedTransaction.id}`;
+
+            try {
+                let chargePayload: any = {
+                    transaction_details: {
+                        order_id: orderId,
+                        gross_amount: Math.round(Number(plan.price))
+                    }
+                };
+
+                if (data.method === Method.QRIS) {
+                    chargePayload = {
+                        ...chargePayload,
+                        payment_type: 'qris',
+                        qris: {
+                            acquirer: 'gopay'
+                        }
+                    };
+                } else {
+                    chargePayload = {
+                        ...chargePayload,
+                        payment_type: 'bank_transfer',
+                        bank_transfer: {
+                            bank: 'bca'
+                        }
+                    };
+                }
+
+                const response = await axios.post(`${apiBaseUrl}/v2/charge`, chargePayload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': authHeader
+                    }
+                });
+
+                if (response.data) {
+                    savedTransaction.external_id = response.data.transaction_id || null;
+                    savedTransaction.payment_details = response.data;
+                    
+                    // Hubungi Snap API juga untuk mendapatkan redirect_url yang bisa dibuka di browser
+                    const snapUrl = isProduction
+                        ? 'https://app.midtrans.com/snap/v1/transactions'
+                        : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+                    
+                    try {
+                        const user = await this.userRepository.findOne({ where: { id: data.user_id } });
+                        const snapResponse = await axios.post(snapUrl, {
+                            transaction_details: {
+                                order_id: orderId,
+                                gross_amount: Math.round(Number(plan.price))
+                            },
+                            customer_details: user ? {
+                                email: user.email
+                            } : undefined
+                        }, {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'Authorization': authHeader
+                            }
+                        });
+                        
+                        if (snapResponse.data) {
+                            savedTransaction.redirect_url = snapResponse.data.redirect_url;
+                        }
+                    } catch (snapError: any) {
+                        console.error('Failed to pre-fetch Midtrans Snap redirect_url:', snapError.message);
+                    }
+
+                    savedTransaction = await this.transactionRepository.save(savedTransaction);
+                }
+            } catch (error: any) {
+                console.error('Midtrans payment charge failed:', error.response?.data || error.message);
+            }
+        }
         
         return {
             status: 'success',
@@ -123,13 +212,29 @@ export class TransactionService {
             throw new BadRequestException('Transaction ID or Order ID is required');
         }
 
-        // Ekstrak angka dari order_id (contoh: "tx-12" menjadi 12)
+        // Ekstrak angka dari order_id (contoh: "tx-12" atau "MANGODEFEND-TX-12" menjadi 12)
         const transactionId = typeof transactionIdStr === 'number'
             ? transactionIdStr
             : parseInt(transactionIdStr.toString().replace(/\D/g, ''), 10);
 
         if (isNaN(transactionId)) {
             throw new BadRequestException('Invalid Transaction ID format');
+        }
+
+        // Verifikasi Signature jika MIDTRANS_SERVER_KEY terkonfigurasi dan signature_key dikirim
+        const serverKey = this.configService.get<string>('MIDTRANS_SERVER_KEY');
+        if (serverKey && payload.signature_key) {
+            const crypto = require('crypto');
+            const orderId = payload.order_id;
+            const statusCode = payload.status_code;
+            const grossAmount = payload.gross_amount;
+            const rawString = `${orderId}${statusCode}${grossAmount}${serverKey}`;
+            const calculatedSignature = crypto.createHash('sha512').update(rawString).digest('hex');
+
+            if (calculatedSignature !== payload.signature_key) {
+                console.error('Invalid signature key from Midtrans webhook');
+                throw new BadRequestException('Invalid webhook signature');
+            }
         }
 
         // Petakan status input payment gateway ke internal TransactionStatus

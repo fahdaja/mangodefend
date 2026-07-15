@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
@@ -9,7 +13,11 @@ import { SupabaseService } from '../../../common/supabase/supabase.service';
 import { ScanStatus, ScanType } from '../enum/scan.enum';
 import { CreateScanDto } from '../dto/create-scan.dto';
 import { label } from 'src/api/dataset/enum/label.enum';
-import { Plans, Subscriptions } from '../../subscriptions/entity/subscription.entity';
+import {
+  Plans,
+  Subscriptions,
+  SubscriptionStatus,
+} from '../../subscriptions/entity/subscription.entity';
 import { PlanType } from '../../subscriptions/enum/plan.enum';
 
 @Injectable()
@@ -119,11 +127,20 @@ export class ScanService {
   // proses membuat history scan dan upload images ke supabase
   async createScanWithUpload(files: Express.Multer.File[], dto: CreateScanDto) {
     // 0. Cek limits berdasarkan active subscription & scan type
-    const activeSub = await this.subscriptionRepository.findOne({
+    const now = new Date();
+    let activeSub = await this.subscriptionRepository.findOne({
       where: { user_id: dto.userId, is_active: true },
       relations: ['plan'],
       order: { end_date: 'DESC' },
     });
+
+    // Otomatis menonaktifkan langganan jika masa end_date nya sudah terlewati
+    if (activeSub && activeSub.end_date < now) {
+      activeSub.is_active = false;
+      activeSub.status = SubscriptionStatus.EXPIRED;
+      await this.subscriptionRepository.save(activeSub);
+      activeSub = null;
+    }
 
     let plan: Plans | null | undefined = activeSub?.plan;
     if (!plan) {
@@ -141,6 +158,19 @@ export class ScanService {
     }
 
     if (limit === 0) {
+      // Cek apakah user pernah memiliki subscription premium yang sekarang sudah expired
+      const hasExpiredSub = await this.subscriptionRepository.findOne({
+        where: { user_id: dto.userId, status: SubscriptionStatus.EXPIRED },
+        relations: ['plan'],
+        order: { end_date: 'DESC' },
+      });
+
+      if (hasExpiredSub && hasExpiredSub.plan?.plan_name !== PlanType.FREE) {
+        throw new ForbiddenException(
+          `Masa aktif paket "${hasExpiredSub.plan?.plan_name}" anda telah kedaluwarsa, silahkan berlangganan kembali untuk menggunakan fitur "${dto.scanType}"`,
+        );
+      }
+
       throw new ForbiddenException(
         `Tipe scan "${dto.scanType}" tidak diizinkan untuk paket "${planName}". Silahkan upgrade paket Anda.`,
       );
@@ -150,7 +180,8 @@ export class ScanService {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
 
-      const todayScansCount = await this.summaryScansRepo.createQueryBuilder('scan')
+      const todayScansCount = await this.summaryScansRepo
+        .createQueryBuilder('scan')
         .where('scan.user_id = :userId', { userId: dto.userId })
         .andWhere('scan.scan_type = :scanType', { scanType: dto.scanType })
         .andWhere('scan.created_at >= :startOfToday', { startOfToday })
