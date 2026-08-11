@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn, ManyToOne, JoinColumn } from "typeorm"
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm"
 import { TransactionStatus } from "../enum/transaction.enum"
 import { Method } from "../enum/method.enum"
 import { User } from "../../users/entity/user.entity"
@@ -18,11 +18,11 @@ export class Transactions {
     @Column({ nullable: true })
     external_id?: string
 
-    @Column({ nullable: true })
-    redirect_url?: string
-
-    @Column({ type: 'simple-json', nullable: true })
+    @Column({ type: 'jsonb', nullable: true })
     payment_details?: any
+
+    @Column({ type: 'varchar', nullable: true })
+    redirect_url?: string
 
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     amount!: number
@@ -33,17 +33,17 @@ export class Transactions {
     @Column({ type: 'enum', enum: Method, nullable: true })
     method!: Method
 
-    @ManyToOne(() => User, { nullable: true })
-    @JoinColumn({ name: "user_id" })
-    user!: User
-
-    @ManyToOne(() => Plans, { nullable: true })
-    @JoinColumn({ name: "plan_id" })
-    plan!: Plans
-
     @CreateDateColumn()
     created_at!: Date
     
     @UpdateDateColumn()
     update_at!: Date
+
+    @ManyToOne(() => User, { nullable: true })
+    @JoinColumn({ name: "user_id" })
+    user?: User
+
+    @ManyToOne(() => Plans, { nullable: true })
+    @JoinColumn({ name: "plan_id" })
+    plan?: Plans
 }

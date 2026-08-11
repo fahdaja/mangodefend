@@ -1,6 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { AuthController } from './controllers/auth.controller';
-import { AuthService } from './services/auth.service';
+import { AuthController } from './controller/auth.controller';
+import { AuthService } from './service/auth.service';
+
 import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from '../users/user.module';
 import { HashModule } from '../../common/hash/hash.module';

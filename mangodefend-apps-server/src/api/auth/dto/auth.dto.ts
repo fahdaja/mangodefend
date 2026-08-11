@@ -63,3 +63,46 @@ export class LoginResponseDto{
     refresh_token?: string;
     expiresIn?: number;
 }
+
+export class VerifyRegistrationOtpDto {
+    @IsNotEmpty({ message: 'Email is required' })
+    email!: string;
+
+    @IsNotEmpty({ message: 'Verification code is required' })
+    code!: string;
+}
+
+export class VerifyLoginOtpDto {
+    @IsNotEmpty({ message: 'Email is required' })
+    email!: string;
+
+    @IsNotEmpty({ message: 'OTP is required' })
+    otp!: string;
+
+    @IsOptional()
+    device?: SessionDevice;
+}
+
+export class ResendOtpDto {
+    @IsNotEmpty({ message: 'Email is required' })
+    email!: string;
+
+    @IsOptional()
+    type?: 'registration' | 'login';
+}
+
+export class ForgotPasswordDto {
+    @IsNotEmpty({ message: 'Email is required' })
+    email!: string;
+}
+
+export class ResetPasswordDto {
+    @IsNotEmpty({ message: 'Email is required' })
+    email!: string;
+
+    @IsNotEmpty({ message: 'Token/OTP is required' })
+    token!: string;
+
+    @IsNotEmpty({ message: 'New password is required' })
+    newPassword!: string;
+}

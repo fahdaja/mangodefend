@@ -52,4 +52,9 @@ export class FirebaseService implements OnModuleInit {
       );
     }
   }
+
+  getMessaging(): admin.messaging.Messaging {
+    return this.app.messaging();
+  }
 }
+

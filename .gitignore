@@ -1,39 +1,19 @@
-# Node
-node_modules/
-.next/
-out/
-build/
-dist/
+# Exclude ml-dashboard project as requested by user
+ml-dashboard/
 
-# Python
+# Dependencies
+**/node_modules/
 .venv/
-venv/
-__pycache__/
-*.pyc
 
-# Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Database / temporary files
-*.db
-local_queue.db
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# Build & Cache
+**/dist/
+**/.next/
+**/__pycache__/
+*.py[cod]
+*.tsbuildinfo
 *.log
 
-# Desktop App (do not push to monorepo)
-Dekstop_V2/
-
+# Environment & local config
+.env
+.env.*
+!.env.example

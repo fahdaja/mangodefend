@@ -1,7 +1,14 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { PlanType } from "../enum/plan.enum";
-import { User } from "src/api/users/entity/user.entity";
-import { MlModel } from "src/api/ML/entity/ml.entity";
+import { User } from "../../users/entity/user.entity";
+import { MlModel } from "../../ml/entity/ml.entity";
+
+export enum SubscriptionStatus {
+    ACTIVE = 'ACTIVE',
+    EXPIRED = 'EXPIRED',
+    INACTIVE = 'INACTIVE',
+    CANCELED = 'CANCELED',
+}
 
 @Entity()
 export class Plans {
@@ -23,14 +30,17 @@ export class Plans {
     @Column({ type: "integer"})
     durationDays!: number
 
-    @Column({ type: "integer", nullable: true })
-    model_id!: number | null
+    @Column({ type: "integer", default: 2 })
+    device_limit!: number
 
-    @Column({ type: "integer", default: 0 })
+    @Column({ type: "integer", default: 5 })
     upload_file_limit!: number
 
-    @Column({ type: "integer", default: 0 })
+    @Column({ type: "integer", default: 1 })
     full_scan_limit!: number
+
+    @Column({ type: "integer", nullable: true })
+    model_id!: number | null
 
     @ManyToOne(() => User, user => user.plans, { nullable: true })
     @JoinColumn({ name: "user_id" })
@@ -42,13 +52,6 @@ export class Plans {
 
     @OneToMany(() => Subscriptions, sub => sub.plan)
     subscriptions!: Subscriptions[]
-}
-
-export enum SubscriptionStatus {
-    ACTIVE = 'active',
-    EXPIRED = 'expired',
-    REPLACED = 'replaced',
-    CANCELLED = 'cancelled'
 }
 
 @Entity()

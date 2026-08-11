@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
@@ -13,12 +9,6 @@ import { SupabaseService } from '../../../common/supabase/supabase.service';
 import { ScanStatus, ScanType } from '../enum/scan.enum';
 import { CreateScanDto } from '../dto/create-scan.dto';
 import { label } from 'src/api/dataset/enum/label.enum';
-import {
-  Plans,
-  Subscriptions,
-  SubscriptionStatus,
-} from '../../subscriptions/entity/subscription.entity';
-import { PlanType } from '../../subscriptions/enum/plan.enum';
 
 @Injectable()
 export class ScanService {
@@ -29,10 +19,6 @@ export class ScanService {
     private readonly summaryScansRepo: Repository<summary_scans>,
     @InjectRepository(dataset_inventories)
     private readonly datasetInventoryRepo: Repository<dataset_inventories>,
-    @InjectRepository(Subscriptions)
-    private readonly subscriptionRepository: Repository<Subscriptions>,
-    @InjectRepository(Plans)
-    private readonly planRepository: Repository<Plans>,
     private readonly supabaseService: SupabaseService,
   ) {}
 
@@ -126,74 +112,6 @@ export class ScanService {
 
   // proses membuat history scan dan upload images ke supabase
   async createScanWithUpload(files: Express.Multer.File[], dto: CreateScanDto) {
-    // 0. Cek limits berdasarkan active subscription & scan type
-    const now = new Date();
-    let activeSub = await this.subscriptionRepository.findOne({
-      where: { user_id: dto.userId, is_active: true },
-      relations: ['plan'],
-      order: { end_date: 'DESC' },
-    });
-
-    // Otomatis menonaktifkan langganan jika masa end_date nya sudah terlewati
-    if (activeSub && activeSub.end_date < now) {
-      activeSub.is_active = false;
-      activeSub.status = SubscriptionStatus.EXPIRED;
-      await this.subscriptionRepository.save(activeSub);
-      activeSub = null;
-    }
-
-    let plan: Plans | null | undefined = activeSub?.plan;
-    if (!plan) {
-      plan = await this.planRepository.findOne({
-        where: { plan_name: PlanType.FREE },
-      });
-    }
-
-    const planName = plan?.plan_name || PlanType.FREE;
-    let limit = 0;
-    if (dto.scanType === ScanType.UPLOAD_FILE) {
-      limit = plan?.upload_file_limit ?? 5;
-    } else if (dto.scanType === ScanType.FULL_SCAN) {
-      limit = plan?.full_scan_limit ?? 0;
-    }
-
-    if (limit === 0) {
-      // Cek apakah user pernah memiliki subscription premium yang sekarang sudah expired
-      const hasExpiredSub = await this.subscriptionRepository.findOne({
-        where: { user_id: dto.userId, status: SubscriptionStatus.EXPIRED },
-        relations: ['plan'],
-        order: { end_date: 'DESC' },
-      });
-
-      if (hasExpiredSub && hasExpiredSub.plan?.plan_name !== PlanType.FREE) {
-        throw new ForbiddenException(
-          `Masa aktif paket "${hasExpiredSub.plan?.plan_name}" anda telah kedaluwarsa, silahkan berlangganan kembali untuk menggunakan fitur "${dto.scanType}"`,
-        );
-      }
-
-      throw new ForbiddenException(
-        `Tipe scan "${dto.scanType}" tidak diizinkan untuk paket "${planName}". Silahkan upgrade paket Anda.`,
-      );
-    }
-
-    if (limit !== -1) {
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-
-      const todayScansCount = await this.summaryScansRepo
-        .createQueryBuilder('scan')
-        .where('scan.user_id = :userId', { userId: dto.userId })
-        .andWhere('scan.scan_type = :scanType', { scanType: dto.scanType })
-        .andWhere('scan.created_at >= :startOfToday', { startOfToday })
-        .getCount();
-
-      if (todayScansCount >= limit) {
-        throw new ForbiddenException(
-          `Batas scan harian untuk tipe "${dto.scanType}" (${limit} kali) telah tercapai pada paket "${planName}". Silahkan upgrade paket Anda untuk batas yang lebih tinggi.`,
-        );
-      }
-    }
-
     const isMalware = dto.isMalware ?? true;
     const folderName = isMalware ? 'malware' : 'benign';
     const actualFileCount = files.length;

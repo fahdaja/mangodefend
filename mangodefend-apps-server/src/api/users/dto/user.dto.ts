@@ -12,6 +12,7 @@ export class CreateUserDto {
 export class UserResponseDto {
     id!: number;
     email!: string;
+    is_email_verified!: boolean;
     createdAt!: Date;
 }
 

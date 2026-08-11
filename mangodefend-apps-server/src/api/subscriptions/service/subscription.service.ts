@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, LessThan } from "typeorm";
-import { Plans, Subscriptions, SubscriptionStatus } from "../entity/subscription.entity";
+import { Repository } from "typeorm";
+import { Plans, Subscriptions } from "../entity/subscription.entity";
 import { CreatePlanDto } from "../dto/create-plan.dto";
 import { CreateSubscriptionDto } from "../dto/create-subscription.dto";
 
@@ -14,28 +14,8 @@ export class SubscriptionService {
         private planRepository: Repository<Plans>
     ) {}
 
-    // Otomatis menonaktifkan langganan yang masa end_date nya sudah terlewati
-    async autoExpireSubscriptions(): Promise<void> {
-        const now = new Date();
-        const expiredSubs = await this.subscriptionRepository.find({
-            where: {
-                is_active: true,
-                end_date: LessThan(now)
-            }
-        });
-
-        if (expiredSubs.length > 0) {
-            for (const sub of expiredSubs) {
-                sub.is_active = false;
-                sub.status = SubscriptionStatus.EXPIRED;
-                await this.subscriptionRepository.save(sub);
-            }
-        }
-    }
-
     // tampilkan list subscription yang aktif
     async findAllActiveSubscription(userId: number): Promise<Subscriptions[]> {
-        await this.autoExpireSubscriptions();
         return await this.subscriptionRepository.find({
             where: { user_id: userId, is_active: true },
             relations: ['plan', 'plan.model']
@@ -44,10 +24,8 @@ export class SubscriptionService {
 
     // tampilkan list subscription berikut user yang
     async findAllSubscriptionsWithUser(): Promise<Subscriptions[]> {
-        await this.autoExpireSubscriptions();
         return await this.subscriptionRepository.find({
-            relations: ['user', 'plan', 'plan.model'],
-            order: { end_date: 'DESC' }
+            relations: ['user', 'plan', 'plan.model']
         });
     }
 
@@ -86,9 +64,8 @@ export class SubscriptionService {
         if (existingSubscription && existingSubscription.end_date > new Date()) {
             if (existingSubscription.plan_id !== data.plan_id) {
                 // LOGIKA OVERRIDE: User mengganti plan (misal Free ke Pro)
-                // Matikan langganan yang lama dengan status REPLACED
+                // Matikan langganan yang lama
                 existingSubscription.is_active = false;
-                existingSubscription.status = SubscriptionStatus.REPLACED;
                 await this.subscriptionRepository.save(existingSubscription);
 
                 // Buat langganan baru yang langsung aktif hari ini
@@ -100,8 +77,7 @@ export class SubscriptionService {
                     plan_id: data.plan_id,
                     start_date: new Date(),
                     end_date: end_date,
-                    is_active: true,
-                    status: SubscriptionStatus.ACTIVE
+                    is_active: true
                 });
 
                 return await this.subscriptionRepository.save(newSubscription);
@@ -113,7 +89,6 @@ export class SubscriptionService {
             newEndDate.setDate(newEndDate.getDate() + plan.durationDays);
             
             existingSubscription.end_date = newEndDate;
-            existingSubscription.status = SubscriptionStatus.ACTIVE;
             return await this.subscriptionRepository.save(existingSubscription);
 
         } else {
@@ -126,8 +101,7 @@ export class SubscriptionService {
                 plan_id: data.plan_id,
                 start_date: new Date(),
                 end_date: end_date,
-                is_active: true,
-                status: SubscriptionStatus.ACTIVE
+                is_active: true
             });
 
             return await this.subscriptionRepository.save(subscription);

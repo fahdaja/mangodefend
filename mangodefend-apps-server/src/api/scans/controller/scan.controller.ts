@@ -14,8 +14,9 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ScanService } from '../service/scan.service';
 import { CreateScanDto } from '../dto/create-scan.dto';
-import { AuthGuard } from '../../auth/guards/auth.guard';
-import { RoleGuard } from '../../auth/guards/roles.guard';
+import { AuthGuard } from '../../auth/guard/auth.guard';
+import { RoleGuard } from '../../auth/guard/roles.guard';
+
 import { Roles } from '../../../common/decorator/roles.decorator';
 import { Role } from '../../users/enum/roles.enum';
 

@@ -31,6 +31,9 @@ export class User {
     @Column({ type: "varchar", nullable: true })
     public photo_url!: string | null;
 
+    @Column({ type: "boolean", default: false })
+    public is_email_verified!: boolean;
+
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
     public createdAt!: Date;
 

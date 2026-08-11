@@ -29,12 +29,4 @@ export class CreatePlanDto {
     @IsNotEmpty()
     @IsNumber()
     model_id!: number;
-
-    @IsOptional()
-    @IsNumber()
-    upload_file_limit?: number;
-
-    @IsOptional()
-    @IsNumber()
-    full_scan_limit?: number;
 }
