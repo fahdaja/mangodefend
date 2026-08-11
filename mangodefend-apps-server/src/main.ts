@@ -9,12 +9,19 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
+  const corsOriginsRaw = process.env.CORS_ORIGINS;
+  const corsOrigins = corsOriginsRaw
+    ? corsOriginsRaw.includes(',')
+      ? corsOriginsRaw.split(',').map((origin) => origin.trim())
+      : corsOriginsRaw.trim()
+    : 'http://localhost:3000';
+
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-  })
+  });
   await app.listen(process.env.PORT ?? 4000);
 }
 bootstrap();

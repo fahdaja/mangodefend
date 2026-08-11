@@ -140,7 +140,7 @@ export const mockTransactions: Transaction[] = [
   {
     id: 'trans_003',
     userId: 'user_003',
-    type: 'topup',
+    type: 'payment',
     amount: 500000,
     status: 'pending',
     description: 'Account Top-up',

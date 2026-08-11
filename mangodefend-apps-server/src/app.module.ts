@@ -26,12 +26,17 @@ import { WorkersModule } from './workers/workers.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        url: configService.get<string>('DATABASE_URL'),
-        autoLoadEntities: true,
-        synchronize: true,
-      }),
+      useFactory: (configService: ConfigService) => {
+        const dbUrl = configService.get<string>('DATABASE_URL');
+        const isSsl = configService.get<string>('DATABASE_SSL') === 'true' || dbUrl?.includes('sslmode=');
+        return {
+          type: 'postgres',
+          url: dbUrl,
+          autoLoadEntities: true,
+          synchronize: true,
+          ssl: isSsl ? { rejectUnauthorized: false } : false,
+        };
+      },
     }),
     HashModule,
     FirebaseModule,
