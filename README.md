@@ -133,7 +133,7 @@ python -m venv .venv
 source .venv/bin/activate  # Linux/macOS
 # .venv\Scripts\activate   # Windows
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+uvicorn app.src.main:app --reload --port 8000
 ```
 
 ### 4. Jalankan `admin` Dashboard
@@ -156,8 +156,7 @@ Akses layanan di browser Anda:
 Setiap komponen memiliki skema file `.env` tersendiri. Rincian selengkapnya mengenai variabel lingkungan dapat dilihat pada dokumen [DOCUMENTATION.md](file:///home/mr-pacman/Documents/Project%20Deteksi%20Malware%20Magang/mangodefend/DOCUMENTATION.md).
 
 Contoh ringkas variabel utama:
-- `DATABASE_URL`: PostgreSQL connection string untuk Apps Server.
-- `MYSQL_URL` / `DB_*`: MySQL connection params untuk ML Server.
+- `DATABASE_URL`: PostgreSQL connection string untuk Apps Server & ML Server.
 - `MIDTRANS_SERVER_KEY`: Kunci API Midtrans sandbox/production.
 - `REDIS_HOST` & `RABBITMQ_URL`: Alamat broker antrean dan perantara pesan.
 
@@ -179,9 +178,13 @@ mangodefend/
 │   ├── src/common/            # Provider Shared (Firebase, Redis, RabbitMQ, Mail)
 │   └── src/workers/           # Background Job Queue Workers
 └── mangodefend-ml-server/     # ML SaaS Service (FastAPI + ONNX)
-    ├── app/api/scans/         # Router, Engine Inference & Log Model
-    ├── app/ml/                # File Model ONNX (Modelv2.onnx)
-    └── main.py                # Entrypoint FastAPI Server
+    ├── app/
+    │   ├── model_weights/     # Model Weights (PyTorch / ONNX)
+    │   ├── src/               # Core Modules (auth, devices, users, scans, datasets, subscriptions)
+    │   └── tests/             # Pytest Unit Test Suite
+    ├── Dockerfile             # Container configuration
+    ├── docker-compose.yml     # Service orchestration
+    └── requirements.txt       # Dependencies Python
 ```
 
 ---

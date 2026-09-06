@@ -1,0 +1,70 @@
+services:
+  # 1. Database PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: mangodefend_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: mangodefend_database
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    
+  # 2. Redis
+  redis:
+    image: redis:7-alpine
+    container_name: mangodefend_redis
+    ports:
+      - "6379:6379"
+  
+  # 3. RabbitMQ 
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: mangodefend_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  # 4. FastAPI Web Server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mangodefend_api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://postgres:secretpassword@postgres:5432/mangodefend_database
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+  
+  # 5. Background Worker
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mangodefend_worker
+    command: ["python", "-m", "app.src.engine.worker"]
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://postgres:secretpassword@postgres:5432/mangodefend_database
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+volumes:
+  postgres_data: 
+    
+    
+    
