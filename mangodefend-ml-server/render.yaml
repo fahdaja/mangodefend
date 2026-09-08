@@ -1,0 +1,42 @@
+services:
+  # =======================================================
+  # Single Free Web Service (Menjalankan Web API + Worker)
+  # Bebas Kartu Kredit / Debit di Render!
+  # =======================================================
+  - type: web
+    name: mangodefend-api
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_BUCKET_RAW
+        value: raw-uploads
+      - key: S3_BUCKET_QUARANTINE
+        value: quarantine-files
+      - key: S3_REGION
+        value: us-east-1
+      - key: MIDTRANS_SERVER_KEY
+        sync: false
+      - key: MIDTRANS_CLIENT_KEY
+        sync: false
+      - key: MIDTRANS_IS_PRODUCTION
+        value: "False"

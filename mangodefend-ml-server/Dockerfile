@@ -45,8 +45,9 @@ RUN useradd -m -u 1000 appuser && \
     mkdir -p /app/model_weights && \
     chown -R appuser:appuser /app
 
-# Copy Source Code aplikasi
+# Copy Source Code aplikasi & Script Entrypoint
 COPY --chown=appuser:appuser ./app /app/app
+COPY --chown=appuser:appuser ./start.sh /app/start.sh
 
 # Pindah ke user non-root
 USER appuser
@@ -54,5 +55,7 @@ USER appuser
 # Expose Port HTTP API
 EXPOSE 8000
 
-# Command default untuk API Server (Bisa di-override oleh Docker Compose untuk Worker)
-CMD ["uvicorn", "app.src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Command default untuk API Server & Background Worker (Menjalankan keduanya dalam 1 container gratis)
+CMD ["sh", "./start.sh"]
+
+
