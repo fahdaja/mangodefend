@@ -1,13 +1,13 @@
-# 🛡️ MangoDefend - Monorepo Malware Detection Ecosystem
+# 🛡️ MangoDefend - Cybersecurity & Malware Detection Ecosystem
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=flat&logo=nestjs&logoColor=white)](https://nestjs.com/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Next.js](https://img.shields.io/badge/Next.js_15-000000?style=flat&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![ONNX Runtime](https://img.shields.io/badge/ONNX_Runtime-005FE6?style=flat&logo=onnx&logoColor=white)](https://onnxruntime.ai/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-Ekosistem keamanan siber terpadu untuk deteksi malware berbasis **Machine Learning (ONNX)**, visualisasi biner grayscale, backend transaksional berkinerja tinggi, dan **Dashboard Monitoring Terpadu**.
+Platform keamanan siber terpadu untuk deteksi malware berbasis **Machine Learning (ONNX)**, konversi biner ke skala abu-abu (2D matrix), manajemen langganan & transaksi (**Midtrans Payment Gateway**), serta **Dashboard Monitoring Terpadu**.
 
 ---
 
@@ -26,91 +26,82 @@ Ekosistem keamanan siber terpadu untuk deteksi malware berbasis **Machine Learni
 
 ## 🏗️ Arsitektur Ekosistem
 
-MangoDefend memisahkan layanan menjadi microservices terisolasi untuk menjamin keandalan, skalabilitas, dan pemisahan beban kerja (seperti proses inferensi ML yang beresiko beban CPU/GPU tinggi).
+MangoDefend menggunakan **Unified Core FastAPI Engine** yang menangani seluruh API transaksi bisnis, manajemen akun, lisensi perangkat, serta inferensi model Machine Learning yang asinkron dan terisolasi.
 
 ```mermaid
 graph TD
-    subgraph Klien [Aktor & Klien Utama]
-        Mitra[Mitra SaaS / Integrator API]
-        UserApp[Pengguna Akhir / Client Devices]
+    subgraph Klien [Klien Utama]
+        MobileApp[Aplikasi Mobile Client / Flutter]
         AdminUser[Administrator Sistem]
     end
 
-    subgraph Admin_Dashboard [Admin Web Dashboard]
+    subgraph Frontend_Dashboard [Dashboard Admin]
         AdminApp["Next.js 15 Admin App (:3000)"]
     end
 
-    subgraph Core_Backend [Core Apps Backend]
-        NestServer["NestJS Core Service (:3001)"]
+    subgraph Core_Backend [MangoDefend ML & API Server]
+        FastAPIServer["FastAPI Core & ML Server (:8000)"]
         Postgres[(PostgreSQL Database)]
-        Redis[(Redis Cache & Session)]
-        RabbitMQ[(RabbitMQ Queue Worker)]
+        Redis[(Redis L1 Cache & Session)]
+        RabbitMQ[(RabbitMQ Task Queue)]
+        Worker["Python ML & Telemetry Worker"]
         Midtrans[Midtrans Payment Gateway]
-        Firebase[Firebase Auth & Admin]
+        SupabaseS3[Supabase / S3 Object Storage]
 
-        NestServer --> Postgres
-        NestServer --> Redis
-        NestServer --> RabbitMQ
-        NestServer --> Midtrans
-        NestServer --> Firebase
-    end
-
-    subgraph ML_Engine [Machine Learning Engine]
-        FastAPIServer["FastAPI ML Service (:8000)"]
-        MySQL[(MySQL Scan Logs DB)]
-        ONNXEngine[ONNX Model Runtime]
-
-        FastAPIServer --> MySQL
-        FastAPIServer --> ONNXEngine
+        FastAPIServer --> Postgres
+        FastAPIServer --> Redis
+        FastAPIServer --> RabbitMQ
+        FastAPIServer --> Midtrans
+        FastAPIServer --> SupabaseS3
+        Worker --> RabbitMQ
+        Worker --> Postgres
+        Worker --> Redis
     end
 
     %% Client Interactions
-    Mitra -->|POST /api/v1/scans/file| FastAPIServer
-    UserApp -->|Langganan & Transaksi| NestServer
-    AdminUser -->|Manajemen & Telemetri| AdminApp
+    MobileApp -->|REST API /api/v1 - Auth, Scan, Subscriptions| FastAPIServer
+    AdminUser -->|Manajemen & Monitoring| AdminApp
 
     %% Internal Monitoring Connections
-    AdminApp -->|REST API - Users, Payment, Device| NestServer
-    AdminApp -->|REST API & SSE - Scan Logs, Model Metrics| FastAPIServer
+    AdminApp -->|REST API /api/v1 - Users, Payments, Devices, Scans| FastAPIServer
 ```
 
 ---
 
 ## 🧩 Komponen Utama
 
-### 1. 🟢 `mangodefend-apps-server` (Core Backend Service)
-Backend terpusat yang dibangun menggunakan **NestJS**, **TypeORM**, **PostgreSQL**, **Redis**, dan **RabbitMQ**.
-- **Fungsi Utama**: Otentikasi pengguna (Firebase/JWT), transaksi & gateway pembayaran (Midtrans), manajemen langganan (Subscription Plans), perizinan perangkat (Devices), antrean asynchronous worker, dan pengiriman notifikasi/email.
-- **Port Default**: `3001` (atau dikonfigurasi via `.env`)
-
-### 2. 🐍 `mangodefend-ml-server` (SaaS Machine Learning Engine)
-Mesin deteksi berbasis **Python FastAPI** dan **ONNX Runtime**.
-- **Fungsi Utama**: Mengubah file biner/aplikasi yang di-upload menjadi visualisasi gambar grayscale (2D array), kemudian mengklasifikasikannya menggunakan model deep learning (CNN ONNX). Hasil pemindaian dan log real-time disimpan di **MySQL** serta di-stream via **Server-Sent Events (SSE)**.
+### 1. 🐍 `mangodefend-ml-server` (Core Backend API & ML Engine)
+Server utama berbasis **Python FastAPI**, **SQLAlchemy**, **PostgreSQL**, **Redis**, **RabbitMQ**, dan **ONNX Runtime**.
+- **Fungsi Utama**:
+  - **Otentikasi & Akun**: Login JWT & Google OAuth 2.0.
+  - **Manajemen Perangkat (Devices)**: Identifikasi unik hardware fingerprint client.
+  - **Langganan & Transaksi**: Integrasi gateway pembayaran **Midtrans Snap API** & verifikasi webhook otomatis.
+  - **Pemindaian & ML Engine**: Konversi biner file (PE/APK/DLL) ke matriks skala abu-abu 2D dan inferensi model `Modelv2.onnx`.
+  - **Signature Binary Export**: Konversi database signature ke format biner `MDB1`.
+  - **Storage**: Sinkronisasi dataset sampel malware ke Supabase S3 Object Storage.
 - **Port Default**: `8000`
 
-### 3. 🖥️ `admin` (Unified Admin Dashboard)
+### 2. 🖥️ `admin` (Unified Admin Dashboard)
 Dashboard web interaktif yang dikembangkan dengan **Next.js 15 App Router**, **Tailwind CSS**, dan **Zustand**.
-- **Fungsi Utama**: Antarmuka kontrol terpadu bagi administrator untuk mengelola akun pengguna, riwayat transaksi pembayaran, kuota pemindaian perangkat, metrik latensi ML engine, serta analisis log sistem secara real-time.
+- **Fungsi Utama**: Antarmuka kontrol terpadu untuk mengelola pengguna, memantau histori transaksi pembayaran, kuota pemindaian perangkat, metrik performa ML, serta audit log sistem secara real-time.
 - **Port Default**: `3000`
 
 ---
 
 ## ⚙️ Persyaratan Sistem
 
-Pastikan environment lokal Anda memiliki:
-- **Node.js**: `v18.x` atau `v20.x`
-- **pnpm**: `v9.x` (atau `npm`)
-- **Python**: `v3.10+` (disarankan menggunakan virtualenv)
-- **PostgreSQL**: `v14+`
-- **MySQL**: `v8+`
-- **Redis**: `v6+`
+Pastikan environment lokal atau VPS Anda memiliki:
+- **Docker & Docker Compose** (Rekomendasi Utama)
+- **Node.js**: `v18.x` atau `v20.x` (Untuk Admin Dashboard)
+- **pnpm**: `v9.x` atau `npm`
+- **Python**: `v3.11+` (Jika dijalankan tanpa Docker)
+- **PostgreSQL**: `v16+`
+- **Redis**: `v7+`
 - **RabbitMQ**: `v3+`
 
 ---
 
 ## 🚀 Panduan Instalasi & Quickstart
-
-Untuk menjalankan seluruh sistem secara lokal:
 
 ### 1. Clone Repositori
 ```bash
@@ -118,47 +109,53 @@ git clone https://github.com/fahdaja/mangodefend.git
 cd mangodefend
 ```
 
-### 2. Jalankan `mangodefend-apps-server`
+### 2. Jalankan Backend Services (`mangodefend-ml-server`) dengan Docker
 ```bash
-cd mangodefend-apps-server
+cd mangodefend-ml-server
 cp .env.example .env
-pnpm install
-pnpm run start:dev
-```
 
-### 3. Jalankan `mangodefend-ml-server`
-```bash
-cd ../mangodefend-ml-server
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# .venv\Scripts\activate   # Windows
-pip install -r requirements.txt
-uvicorn app.src.main:app --reload --port 8000
+# Jalankan seluruh stack (API, Worker, Postgres, Redis, RabbitMQ)
+docker compose up -d --build
 ```
+> API Server akan aktif di `http://localhost:8000`  
+> Dokumentasi Swagger UI: `http://localhost:8000/docs`
 
-### 4. Jalankan `admin` Dashboard
+### 3. Jalankan `admin` Dashboard
 ```bash
 cd ../admin
 cp .env.example .env.local
 pnpm install
 pnpm dev
 ```
-
-Akses layanan di browser Anda:
-- **Admin Dashboard**: `http://localhost:3000`
-- **Apps Server API**: `http://localhost:3001`
-- **ML Engine API & Swagger Docs**: `http://localhost:8000/docs`
+> Dashboard Admin akan aktif di `http://localhost:3000`
 
 ---
 
 ## 🔐 Konfigurasi Lingkungan (.env)
 
-Setiap komponen memiliki skema file `.env` tersendiri. Rincian selengkapnya mengenai variabel lingkungan dapat dilihat pada dokumen [DOCUMENTATION.md](file:///home/mr-pacman/Documents/Project%20Deteksi%20Malware%20Magang/mangodefend/DOCUMENTATION.md).
+Variabel utama yang perlu dikonfigurasi di `mangodefend-ml-server/.env`:
 
-Contoh ringkas variabel utama:
-- `DATABASE_URL`: PostgreSQL connection string untuk Apps Server & ML Server.
-- `MIDTRANS_SERVER_KEY`: Kunci API Midtrans sandbox/production.
-- `REDIS_HOST` & `RABBITMQ_URL`: Alamat broker antrean dan perantara pesan.
+```ini
+APP_NAME="MangoDefend ML Server"
+DEBUG=True
+
+# Database PostgreSQL
+DATABASE_URL=postgresql://postgres:secretpassword@postgres:5432/mangodefend_database
+
+# Redis & RabbitMQ
+REDIS_URL=redis://redis:6379/0
+RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+
+# Object Storage (Supabase S3)
+S3_ENDPOINT_URL=https://your-supabase-id.supabase.co/storage/v1/s3
+S3_ACCESS_KEY_ID=your_access_key
+S3_SECRET_ACCESS_KEY=your_secret_key
+
+# Payment Gateway (Midtrans)
+MIDTRANS_SERVER_KEY=SB-Mid-server-xxxxxxxxx
+MIDTRANS_CLIENT_KEY=SB-Mid-client-xxxxxxxxx
+MIDTRANS_IS_PRODUCTION=False
+```
 
 ---
 
@@ -166,32 +163,28 @@ Contoh ringkas variabel utama:
 
 ```text
 mangodefend/
-├── DOCUMENTATION.md           # Dokumentasi teknis & arsitektur lengkap
+├── DOCUMENTATION.md           # Dokumentasi teknis & arsitektur terperinci
 ├── LICENSE                    # Lisensi terbuka MIT
 ├── README.md                  # Dokumentasi ringkas repositori
 ├── admin/                     # Dashboard Frontend (Next.js 15)
 │   ├── app/                   # App Router Pages & Components
 │   ├── lib/                   # API Client & State Store (Zustand)
 │   └── public/                # Asset gambar & ikon UI
-├── mangodefend-apps-server/   # Core Backend (NestJS Monolith Service)
-│   ├── src/api/               # Modul (Auth, Users, Scans, Transactions, Subscriptions, Devices)
-│   ├── src/common/            # Provider Shared (Firebase, Redis, RabbitMQ, Mail)
-│   └── src/workers/           # Background Job Queue Workers
-└── mangodefend-ml-server/     # ML SaaS Service (FastAPI + ONNX)
+└── mangodefend-ml-server/     # Core Backend API & ML Engine (FastAPI + Docker)
     ├── app/
-    │   ├── model_weights/     # Model Weights (PyTorch / ONNX)
+    │   ├── model_weights/     # Weights Model ONNX (Modelv2.onnx)
     │   ├── src/               # Core Modules (auth, devices, users, scans, datasets, subscriptions)
     │   └── tests/             # Pytest Unit Test Suite
-    ├── Dockerfile             # Container configuration
-    ├── docker-compose.yml     # Service orchestration
-    └── requirements.txt       # Dependencies Python
+    ├── Dockerfile             # Multi-stage Dockerfile
+    ├── docker-compose.yml     # Orchestration (Postgres, Redis, RabbitMQ, API, Worker)
+    └── requirements.txt       # Dependensi Python
 ```
 
 ---
 
 ## 📖 Dokumentasi API & Fitur Lengkap
 
-Dokumentasi lengkap mengenai detail endpoint REST API, alur transaksi pembayaran Midtrans, arsitektur background worker RabbitMQ/Redis, serta arsitektur inferensi model ONNX telah dirangkum secara mendalam di dokumen:
+Dokumentasi teknis lengkap mengenai spesifikasi endpoint REST API, skema database, alur kerja pembayaran Midtrans, dan detail inferensi ML dapat dilihat pada:
 
 📄 **[Lihat DOCUMENTATION.md](file:///home/mr-pacman/Documents/Project%20Deteksi%20Malware%20Magang/mangodefend/DOCUMENTATION.md)**
 
