@@ -1,0 +1,68 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+
+# IDE & Editor files
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+
+# Flutter / Dart / Pub build artifacts
+**/doc/api/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+**/build/
+**/coverage/
+/cli/
+
+# Android build artifacts
+**/android/.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/android/app/build/
+
+# iOS / macOS build artifacts
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Pods/
+**/.generated/
+
+# Symbolication & Obfuscation
+app.*.symbols
+app.*.map.json
+
+# Environment / Secret configs
+.env
+*.env
+.env.*
+!.env.example
+
+# Firebase configuration and signing credentials
+app/google-services.json
+app/ios/Runner/GoogleService-Info.plist
+**/key.properties
+**/*.keystore
+**/*.jks
+**/*.p12
+**/*.pem

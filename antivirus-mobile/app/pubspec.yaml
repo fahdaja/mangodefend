@@ -1,0 +1,31 @@
+name: antivirus_mobile
+description: Antivirus Mobile Application
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_svg: ^1.1.6
+  http: ^1.2.0
+  google_sign_in: ^6.2.1
+  file_picker: ^8.0.0
+  permission_handler: ^11.3.0
+  path_provider: ^2.1.2
+  crypto: ^3.0.3
+  url_launcher: ^6.2.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/
+    - assets/images/
+    - assets/signatures.bin
